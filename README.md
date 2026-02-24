@@ -87,6 +87,7 @@ docker-compose up -d
 ## 📖 文档
 
 - [快速开始](QUICKSTART.md) - 5 分钟快速部署指南 ⭐
+- [VPS 部署指南](VPS_DEPLOYMENT.md) - VPS 服务器部署和故障排查 ⭐⭐
 - [项目完成报告](PROJECT_COMPLETE.md) - 项目交付内容和功能清单 ⭐
 - [安装部署指南](INSTALL.md) - 详细的安装和部署说明
 - [使用指南](USAGE.md) - 功能使用和最佳实践

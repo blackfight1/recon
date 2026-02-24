@@ -6,7 +6,7 @@ WORKDIR /app
 RUN apk add --no-cache git docker-cli
 
 # 复制依赖文件
-COPY go.mod go.sum ./
+COPY go.mod ./
 RUN go mod download
 
 # 复制源代码
