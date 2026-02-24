@@ -1,127 +1,50 @@
 # VPS 部署指南
 
-## 问题修复
+## 🚀 快速部署
 
-### 1. 构建错误修复
-
-已修复 `go.sum` 文件缺失的问题。现在可以正常构建。
-
-### 2. VPS 访问配置
-
-在 VPS 上部署后无法访问的常见原因和解决方法：
-
-## 快速修复步骤
-
-### 步骤 1: 清理并重新构建
+### 步骤 1: 停止并清理旧版本
 
 ```bash
-# 停止并清理
 docker-compose down -v
-
-# 重新构建并启动
-docker-compose up -d --build
 ```
 
-### 步骤 2: 检查服务状态
+### 步骤 2: 重新构建并启动
 
 ```bash
-# 查看容器状态
-docker-compose ps
+# 使用重建脚本（推荐）
+chmod +x rebuild.sh
+./rebuild.sh
+```
 
-# 查看日志
+或手动执行：
+
+```bash
+docker-compose build --no-cache
+docker-compose up -d
 docker-compose logs -f
 ```
 
-### 步骤 3: 开放防火墙端口
-
-#### Ubuntu/Debian (使用 ufw)
+### 步骤 3: 验证部署
 
 ```bash
-# 检查防火墙状态
-sudo ufw status
+# 检查容器状态
+docker-compose ps
 
-# 开放 8080 端口
-sudo ufw allow 8080/tcp
-
-# 开放 8000 端口（API）
-sudo ufw allow 8000/tcp
-
-# 重新加载防火墙
-sudo ufw reload
-```
-
-#### CentOS/RHEL (使用 firewalld)
-
-```bash
-# 检查防火墙状态
-sudo firewall-cmd --state
-
-# 开放端口
-sudo firewall-cmd --permanent --add-port=8080/tcp
-sudo firewall-cmd --permanent --add-port=8000/tcp
-
-# 重新加载
-sudo firewall-cmd --reload
-```
-
-#### 使用 iptables
-
-```bash
-# 开放端口
-sudo iptables -A INPUT -p tcp --dport 8080 -j ACCEPT
-sudo iptables -A INPUT -p tcp --dport 8000 -j ACCEPT
-
-# 保存规则
-sudo iptables-save > /etc/iptables/rules.v4
-```
-
-### 步骤 4: 检查云服务商安全组
-
-如果使用阿里云、腾讯云、AWS 等，需要在控制台配置安全组：
-
-1. 登录云服务商控制台
-2. 找到你的 VPS 实例
-3. 进入"安全组"或"防火墙"设置
-4. 添加入站规则：
-   - 端口：8080
-   - 协议：TCP
-   - 来源：0.0.0.0/0（或你的 IP）
-5. 添加入站规则：
-   - 端口：8000
-   - 协议：TCP
-   - 来源：0.0.0.0/0（或你的 IP）
-
-### 步骤 5: 验证端口监听
-
-```bash
-# 检查端口是否在监听
-netstat -tlnp | grep 8080
-netstat -tlnp | grep 8000
-
-# 或使用 ss
-ss -tlnp | grep 8080
-ss -tlnp | grep 8000
-```
-
-### 步骤 6: 测试本地访问
-
-```bash
-# 在 VPS 上测试
-curl http://localhost:8080
+# 检查后端
 curl http://localhost:8000/health
+
+# 检查前端
+curl -I http://localhost:8080
 ```
 
-如果本地可以访问但外网不行，说明是防火墙问题。
-
-### 步骤 7: 测试外网访问
-
-从你的本地电脑测试：
+### 步骤 4: 获取访问地址
 
 ```bash
-# 替换 YOUR_VPS_IP 为你的 VPS IP
-curl http://YOUR_VPS_IP:8080
-curl http://YOUR_VPS_IP:8000/health
+# 获取服务器 IP
+curl ifconfig.me
 ```
+
+然后在浏览器访问：`http://你的IP:8080`
 
 ## 完整部署流程
 

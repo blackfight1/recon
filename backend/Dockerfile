@@ -5,15 +5,13 @@ WORKDIR /app
 # 安装必要工具
 RUN apk add --no-cache git docker-cli
 
-# 复制依赖文件
-COPY go.mod ./
-RUN go mod download
-
-# 复制源代码
+# 复制所有文件
 COPY . .
 
-# 编译
-RUN CGO_ENABLED=0 GOOS=linux go build -o main .
+# 下载依赖并编译
+RUN go mod download && \
+    go mod tidy && \
+    CGO_ENABLED=0 GOOS=linux go build -o main .
 
 # 运行阶段
 FROM alpine:latest

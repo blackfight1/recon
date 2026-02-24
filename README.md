@@ -34,12 +34,12 @@
 
 ## 🚀 快速开始
 
-### 方式一：一键启动（推荐）
+### 一键部署
 
 **Linux/Mac:**
 ```bash
-chmod +x start.sh
-./start.sh
+chmod +x rebuild.sh
+./rebuild.sh
 ```
 
 **Windows:**
@@ -47,55 +47,27 @@ chmod +x start.sh
 start.bat
 ```
 
-### 方式二：测试部署（推荐用于首次部署）
+### 访问系统
 
-**Linux/Mac:**
+- 本地: http://localhost:8080
+- VPS: http://你的IP:8080
+
+### 卸载
+
 ```bash
-chmod +x test-deployment.sh
-./test-deployment.sh
+chmod +x uninstall.sh
+./uninstall.sh
 ```
 
-这个脚本会：
-- 检查环境和文件结构
-- 自动启动服务
-- 运行完整的测试套件
-- 验证所有功能正常
-
-### 方式三：手动启动
-
-1. **检查环境**
-```bash
-docker --version
-docker-compose --version
-```
-
-2. **配置系统**
-```bash
-cp backend/config.example.yaml backend/config.yaml
-# 编辑 config.yaml 配置通知 Webhook
-```
-
-3. **启动服务**
-```bash
-docker-compose up -d
-```
-
-4. **访问系统**
-- Web 界面: http://localhost:8080
-- API 接口: http://localhost:8000/api
+详细部署指南请查看 [VPS_DEPLOYMENT.md](VPS_DEPLOYMENT.md)
 
 ## 📖 文档
 
-- [快速开始](QUICKSTART.md) - 5 分钟快速部署指南 ⭐
-- [VPS 部署指南](VPS_DEPLOYMENT.md) - VPS 服务器部署和故障排查 ⭐⭐
-- [项目完成报告](PROJECT_COMPLETE.md) - 项目交付内容和功能清单 ⭐
-- [安装部署指南](INSTALL.md) - 详细的安装和部署说明
-- [使用指南](USAGE.md) - 功能使用和最佳实践
-- [API 文档](API.md) - 完整的 API 接口文档
-- [项目结构](PROJECT_STRUCTURE.md) - 代码结构和扩展指南
-- [部署验证](DEPLOYMENT_VERIFICATION.md) - 部署验证清单
-- [开发环境](dev-setup.md) - 本地开发环境配置
-- [功能清单](CHECKLIST.md) - 完整的功能清单
+- [部署清单](DEPLOY.md) - 快速部署步骤 ⭐
+- [VPS 部署](VPS_DEPLOYMENT.md) - VPS 服务器部署和故障排查
+- [安装指南](INSTALL.md) - 详细安装说明
+- [使用指南](USAGE.md) - 功能使用说明
+- [API 文档](API.md) - API 接口文档
 
 ## 🏗️ 技术架构
 
@@ -159,34 +131,29 @@ docker-compose up -d
 ### 变更中心
 时间轴展示所有资产变更
 
-## 🔧 配置说明
+## 📋 常用命令
 
-### 通知配置
+```bash
+# 启动服务
+./start.sh                    # 或 docker-compose up -d
 
-**企业微信:**
-```yaml
-notification:
-  wecom:
-    enabled: true
-    webhook: "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY"
-```
+# 查看日志
+docker-compose logs -f
 
-**钉钉:**
-```yaml
-notification:
-  dingtalk:
-    enabled: true
-    webhook: "https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN"
-    secret: "YOUR_SECRET"
-```
+# 查看状态
+docker-compose ps
 
-### 扫描配置
+# 停止服务
+docker-compose down
 
-```yaml
-scanner:
-  interval: 6        # 扫描间隔（小时）
-  data_dir: /data    # 数据目录
-  concurrency: 10    # 并发数
+# 重启服务
+docker-compose restart
+
+# 重新构建
+./rebuild.sh                  # 或 docker-compose build --no-cache
+
+# 卸载系统
+./uninstall.sh
 ```
 
 ## 📝 使用示例
