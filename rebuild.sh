@@ -7,16 +7,29 @@ echo ""
 echo "1️⃣ 停止所有容器..."
 docker-compose down
 
-# 删除旧镜像
-echo "2️⃣ 删除旧镜像..."
+# 删除旧镜像和构建缓存
+echo "2️⃣ 删除旧镜像和构建缓存..."
 docker-compose rm -f
 docker rmi recon_backend recon_frontend 2>/dev/null || true
+docker builder prune -f
 
-# 重新构建（不使用缓存）
+# 重新构建（不使用缓存，显示详细输出）
 echo "3️⃣ 重新构建镜像（这可能需要几分钟）..."
-docker-compose build --no-cache
+docker-compose build --no-cache --progress=plain
+
+# 检查构建是否成功
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ 构建失败！请查看上面的错误信息。"
+    echo ""
+    echo "💡 尝试手动测试构建："
+    echo "   chmod +x test-build.sh"
+    echo "   ./test-build.sh"
+    exit 1
+fi
 
 # 启动服务
+echo ""
 echo "4️⃣ 启动所有服务..."
 docker-compose up -d
 
@@ -35,13 +48,21 @@ echo "🔍 检查服务..."
 # 检查后端
 echo ""
 echo "后端健康检查："
-if curl -s http://localhost:8000/health 2>/dev/null | grep -q "ok"; then
-    echo "✅ 后端 API 正常运行"
-else
-    echo "❌ 后端 API 异常"
-    echo "后端日志（最后 20 行）："
-    docker-compose logs --tail=20 backend
-fi
+for i in {1..5}; do
+    if curl -s http://localhost:8000/health 2>/dev/null | grep -q "ok"; then
+        echo "✅ 后端 API 正常运行"
+        break
+    else
+        if [ $i -eq 5 ]; then
+            echo "❌ 后端 API 异常"
+            echo "后端日志（最后 30 行）："
+            docker-compose logs --tail=30 backend
+        else
+            echo "⏳ 等待后端启动... ($i/5)"
+            sleep 5
+        fi
+    fi
+done
 
 # 检查前端
 echo ""
