@@ -1,0 +1,31 @@
+server:
+  port: 8000
+  mode: debug  # debug / release
+
+database:
+  host: postgres
+  port: 5432
+  user: recon
+  password: recon123456
+  dbname: recon
+  sslmode: disable
+
+scanner:
+  # 扫描间隔（小时）
+  interval: 6
+  # 数据目录
+  data_dir: /data
+  # 并发数
+  concurrency: 10
+
+notification:
+  # 企业微信机器人 Webhook
+  wecom:
+    enabled: false
+    webhook: "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY"
+  
+  # 钉钉机器人 Webhook
+  dingtalk:
+    enabled: false
+    webhook: "https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN"
+    secret: ""  # 如果启用了加签，填写密钥

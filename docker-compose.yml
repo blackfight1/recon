@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: recon-db
+    environment:
+      POSTGRES_DB: recon
+      POSTGRES_USER: recon
+      POSTGRES_PASSWORD: recon123456
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - recon-network
+    restart: unless-stopped
+
+  # Go 后端 API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: recon-api
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=recon
+      - DB_PASSWORD=recon123456
+      - DB_NAME=recon
+    volumes:
+      - ./backend:/app
+      - /var/run/docker.sock:/var/run/docker.sock  # 允许后端调用 Docker
+      - scan_data:/data  # 扫描数据共享卷
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+    networks:
+      - recon-network
+    restart: unless-stopped
+
+  # Vue 前端
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: recon-web
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - recon-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  scan_data:
+
+networks:
+  recon-network:
+    driver: bridge
