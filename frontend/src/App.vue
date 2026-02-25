@@ -8,6 +8,10 @@
             <el-icon><Monitor /></el-icon>
             <span>仪表盘</span>
           </el-menu-item>
+          <el-menu-item index="/quick-scan">
+            <el-icon><Search /></el-icon>
+            <span>快速扫描</span>
+          </el-menu-item>
           <el-menu-item index="/targets">
             <el-icon><Aim /></el-icon>
             <span>目标管理</span>
@@ -36,7 +40,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Monitor, Aim, Connection, Bell, List } from '@element-plus/icons-vue'
+import { Monitor, Search, Aim, Connection, Bell, List } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const activeMenu = computed(() => route.path)

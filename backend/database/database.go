@@ -38,5 +38,6 @@ func AutoMigrate() error {
 		&models.Subdomain{},
 		&models.ScanTask{},
 		&models.ChangeLog{},
+		&models.ScanLog{},
 	)
 }

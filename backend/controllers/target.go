@@ -249,3 +249,59 @@ func GetStats(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"data": stats})
 }
+
+// QuickScan 快速扫描（不添加到监控列表）
+func QuickScan(c *gin.Context) {
+	var input struct {
+		Domain string `json:"domain" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 创建临时任务（targetID 为 0）
+	task := &models.ScanTask{
+		TargetID:    0,
+		Domain:      input.Domain,
+		TaskType:    "subdomain",
+		Status:      "pending",
+		Progress:    0,
+		CurrentStep: "等待开始",
+	}
+	database.DB.Create(task)
+
+	// 异步执行扫描
+	go scanner.ScanTarget(0, input.Domain)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Quick scan started",
+		"task_id": task.ID,
+	})
+}
+
+// GetTaskLogs 获取任务日志
+func GetTaskLogs(c *gin.Context) {
+	taskID := c.Param("task_id")
+	var logs []models.ScanLog
+
+	database.DB.Where("task_id = ?", taskID).
+		Order("created_at asc").
+		Find(&logs)
+
+	c.JSON(http.StatusOK, gin.H{"data": logs})
+}
+
+// GetTaskProgress 获取任务进度
+func GetTaskProgress(c *gin.Context) {
+	taskID := c.Param("task_id")
+	var task models.ScanTask
+
+	if err := database.DB.First(&task, taskID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": task})
+}

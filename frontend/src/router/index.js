@@ -4,12 +4,18 @@ import Targets from '../views/Targets.vue'
 import Subdomains from '../views/Subdomains.vue'
 import Changes from '../views/Changes.vue'
 import Tasks from '../views/Tasks.vue'
+import QuickScan from '../views/QuickScan.vue'
 
 const routes = [
     {
         path: '/',
         name: 'Dashboard',
         component: Dashboard
+    },
+    {
+        path: '/quick-scan',
+        name: 'QuickScan',
+        component: QuickScan
     },
     {
         path: '/targets',

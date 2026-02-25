@@ -62,5 +62,19 @@ export default {
     // 任务
     getTasks(params) {
         return api.get('/tasks', { params })
+    },
+
+    // 任务日志和进度
+    getTaskLogs(taskId) {
+        return api.get(`/tasks/${taskId}/logs`)
+    },
+
+    getTaskProgress(taskId) {
+        return api.get(`/tasks/${taskId}/progress`)
+    },
+
+    // 快速扫描
+    quickScan(domain) {
+        return api.post('/quick-scan', { domain })
     }
 }

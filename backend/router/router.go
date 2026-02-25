@@ -52,7 +52,12 @@ func SetupRouter() *gin.Engine {
 		{
 			tasks.GET("", controllers.GetTasks)
 			tasks.GET("/:id", controllers.GetTask)
+			tasks.GET("/:task_id/logs", controllers.GetTaskLogs)
+			tasks.GET("/:task_id/progress", controllers.GetTaskProgress)
 		}
+
+		// 快速扫描
+		api.POST("/quick-scan", controllers.QuickScan)
 
 		// 统计信息
 		api.GET("/stats", controllers.GetStats)

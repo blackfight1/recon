@@ -33,15 +33,28 @@ type Subdomain struct {
 // ScanTask 扫描任务
 type ScanTask struct {
 	ID          uint       `gorm:"primaryKey" json:"id"`
-	TargetID    uint       `gorm:"index;not null" json:"target_id"`
+	TargetID    uint       `gorm:"index" json:"target_id"`          // 允许为0表示快速扫描
+	Domain      string     `json:"domain"`                          // 快速扫描时存储域名
 	TaskType    string     `json:"task_type"`                       // subdomain, port, screenshot, vuln
 	Status      string     `gorm:"default:'pending'" json:"status"` // pending, running, completed, failed
+	Progress    int        `gorm:"default:0" json:"progress"`       // 0-100
+	CurrentStep string     `json:"current_step"`                    // 当前执行步骤
 	Result      string     `gorm:"type:text" json:"result"`
 	ErrorMsg    string     `gorm:"type:text" json:"error_msg"`
 	StartedAt   *time.Time `json:"started_at"`
 	CompletedAt *time.Time `json:"completed_at"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
+}
+
+// ScanLog 扫描日志
+type ScanLog struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	TaskID    uint      `gorm:"index;not null" json:"task_id"`
+	Level     string    `json:"level"` // info, warning, error, success
+	Step      string    `json:"step"`  // 步骤名称
+	Message   string    `gorm:"type:text" json:"message"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // ChangeLog 变更日志
@@ -69,4 +82,8 @@ func (ScanTask) TableName() string {
 
 func (ChangeLog) TableName() string {
 	return "change_logs"
+}
+
+func (ScanLog) TableName() string {
+	return "scan_logs"
 }
