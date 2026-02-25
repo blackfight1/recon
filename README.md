@@ -60,18 +60,23 @@ chmod +x *.sh
 ## 🛠️ 常用命令
 
 ```bash
+# 启动项目
+./start.sh
+
+# 查看后端日志
+./logs.sh
+
+# 诊断问题
+./debug.sh
+
 # 查看服务状态
 docker-compose ps
 
-# 查看日志
-docker-compose logs -f backend
-docker-compose logs -f frontend
+# 重新构建
+./rebuild.sh
 
 # 重启服务
 docker-compose restart
-
-# 重新构建
-./rebuild.sh
 
 # 停止服务
 docker-compose down
@@ -116,17 +121,53 @@ recon/
 
 ## 🐛 故障排查
 
+### 后端容器不断重启
+
+```bash
+# 1. 查看后端日志
+docker-compose logs -f backend
+
+# 2. 运行诊断脚本
+chmod +x debug.sh
+./debug.sh
+
+# 3. 检查常见问题
+# - 数据库是否启动成功
+# - 配置文件是否存在
+# - 环境变量是否正确
+```
+
 ### 服务无法启动
 
 ```bash
-# 查看详细日志
-docker-compose logs
+# 查看服务状态
+docker-compose ps
 
-# 检查端口占用
-netstat -tulpn | grep -E '8000|8080|5432'
+# 查看日志
+docker-compose logs -f backend
+docker-compose logs -f frontend
 
 # 重新构建
 ./rebuild.sh
+
+# 诊断问题
+./debug.sh
+```
+
+### 常用命令
+
+```bash
+# 查看后端日志
+./logs.sh
+# 或
+docker-compose logs -f backend
+
+# 重启单个服务
+docker-compose restart backend
+
+# 进入容器调试
+docker-compose exec backend sh
+docker-compose exec postgres psql -U recon -d recon
 ```
 
 ### 扫描工具无法运行

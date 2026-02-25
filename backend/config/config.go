@@ -55,6 +55,17 @@ func LoadConfig() error {
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("/app")
 
+	// 允许从环境变量读取配置
+	viper.AutomaticEnv()
+	viper.SetEnvPrefix("") // 不使用前缀
+
+	// 绑定环境变量到配置项
+	viper.BindEnv("database.host", "DB_HOST")
+	viper.BindEnv("database.port", "DB_PORT")
+	viper.BindEnv("database.user", "DB_USER")
+	viper.BindEnv("database.password", "DB_PASSWORD")
+	viper.BindEnv("database.dbname", "DB_NAME")
+
 	if err := viper.ReadInConfig(); err != nil {
 		return err
 	}
