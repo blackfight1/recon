@@ -3,7 +3,7 @@
     <el-header class="app-header">
       <div class="header-content">
         <div class="logo">
-          <el-icon class="logo-icon"><Radar /></el-icon>
+          <el-icon class="logo-icon"><Monitor /></el-icon>
           <h1>自动化侦查平台</h1>
         </div>
         <el-menu
@@ -48,7 +48,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Monitor, Search, Aim, Connection, Bell, List, Radar } from '@element-plus/icons-vue'
+import { Monitor, Search, Aim, Connection, Bell, List } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const activeMenu = computed(() => route.path)
