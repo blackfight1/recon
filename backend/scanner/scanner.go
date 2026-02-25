@@ -45,6 +45,29 @@ func ScanTarget(targetID uint, domain string) error {
 
 	// 创建日志记录器
 	logger := NewLogger(task.ID)
+	return executeScan(task.ID, targetID, domain, logger)
+}
+
+// ScanWithTask 使用已存在的任务进行扫描
+func ScanWithTask(taskID uint, targetID uint, domain string) error {
+	log.Printf("Starting scan with task ID: %d for domain: %s", taskID, domain)
+
+	// 更新任务状态
+	now := time.Now()
+	database.DB.Model(&models.ScanTask{}).Where("id = ?", taskID).Updates(map[string]interface{}{
+		"status":       "running",
+		"started_at":   &now,
+		"progress":     0,
+		"current_step": "初始化",
+	})
+
+	// 创建日志记录器
+	logger := NewLogger(taskID)
+	return executeScan(taskID, targetID, domain, logger)
+}
+
+// executeScan 执行扫描的核心逻辑
+func executeScan(taskID uint, targetID uint, domain string, logger *Logger) error {
 	logger.Info("初始化", fmt.Sprintf("开始扫描目标: %s", domain))
 	logger.UpdateProgress(5, "子域名收集")
 
@@ -53,7 +76,7 @@ func ScanTarget(targetID uint, domain string) error {
 	subdomains, err := collectSubdomains(domain, logger)
 	if err != nil {
 		logger.Error("子域名收集", fmt.Sprintf("收集失败: %v", err))
-		updateTaskFailed(task, err)
+		updateTaskFailedByID(taskID, err)
 		return err
 	}
 	logger.Success("子域名收集", fmt.Sprintf("收集到 %d 个子域名", len(subdomains)))
@@ -64,7 +87,7 @@ func ScanTarget(targetID uint, domain string) error {
 	aliveSubdomains, err := verifyAlive(subdomains, logger)
 	if err != nil {
 		logger.Error("存活验证", fmt.Sprintf("验证失败: %v", err))
-		updateTaskFailed(task, err)
+		updateTaskFailedByID(taskID, err)
 		return err
 	}
 	logger.Success("存活验证", fmt.Sprintf("发现 %d 个存活子域名", len(aliveSubdomains)))
@@ -87,7 +110,7 @@ func ScanTarget(targetID uint, domain string) error {
 
 	// 更新任务状态
 	logger.UpdateProgress(100, "完成")
-	updateTaskCompleted(task, fmt.Sprintf("发现 %d 个存活子域名，%d 条变更", len(aliveSubdomains), len(changes)))
+	updateTaskCompletedByID(taskID, fmt.Sprintf("发现 %d 个存活子域名，%d 条变更", len(aliveSubdomains), len(changes)))
 	logger.Success("完成", fmt.Sprintf("扫描完成: %s", domain))
 
 	log.Printf("Scan completed for %s", domain)
@@ -409,10 +432,28 @@ func updateTaskFailed(task *models.ScanTask, err error) {
 	database.DB.Save(task)
 }
 
+func updateTaskFailedByID(taskID uint, err error) {
+	now := time.Now()
+	database.DB.Model(&models.ScanTask{}).Where("id = ?", taskID).Updates(map[string]interface{}{
+		"status":       "failed",
+		"error_msg":    err.Error(),
+		"completed_at": &now,
+	})
+}
+
 func updateTaskCompleted(task *models.ScanTask, result string) {
 	task.Status = "completed"
 	task.Result = result
 	now := time.Now()
 	task.CompletedAt = &now
 	database.DB.Save(task)
+}
+
+func updateTaskCompletedByID(taskID uint, result string) {
+	now := time.Now()
+	database.DB.Model(&models.ScanTask{}).Where("id = ?", taskID).Updates(map[string]interface{}{
+		"status":       "completed",
+		"result":       result,
+		"completed_at": &now,
+	})
 }

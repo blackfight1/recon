@@ -52,8 +52,8 @@ func SetupRouter() *gin.Engine {
 		{
 			tasks.GET("", controllers.GetTasks)
 			tasks.GET("/:id", controllers.GetTask)
-			tasks.GET("/:task_id/logs", controllers.GetTaskLogs)
-			tasks.GET("/:task_id/progress", controllers.GetTaskProgress)
+			tasks.GET("/:id/logs", controllers.GetTaskLogs)
+			tasks.GET("/:id/progress", controllers.GetTaskProgress)
 		}
 
 		// 快速扫描

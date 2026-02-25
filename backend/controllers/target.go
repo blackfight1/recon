@@ -270,10 +270,15 @@ func QuickScan(c *gin.Context) {
 		Progress:    0,
 		CurrentStep: "等待开始",
 	}
-	database.DB.Create(task)
+	if err := database.DB.Create(task).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create task"})
+		return
+	}
 
-	// 异步执行扫描
-	go scanner.ScanTarget(0, input.Domain)
+	// 异步执行扫描（使用已创建的 task.ID）
+	go func(taskID uint, domain string) {
+		scanner.ScanWithTask(taskID, 0, domain)
+	}(task.ID, input.Domain)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Quick scan started",
@@ -283,7 +288,7 @@ func QuickScan(c *gin.Context) {
 
 // GetTaskLogs 获取任务日志
 func GetTaskLogs(c *gin.Context) {
-	taskID := c.Param("task_id")
+	taskID := c.Param("id")
 	var logs []models.ScanLog
 
 	database.DB.Where("task_id = ?", taskID).
@@ -295,7 +300,7 @@ func GetTaskLogs(c *gin.Context) {
 
 // GetTaskProgress 获取任务进度
 func GetTaskProgress(c *gin.Context) {
-	taskID := c.Param("task_id")
+	taskID := c.Param("id")
 	var task models.ScanTask
 
 	if err := database.DB.First(&task, taskID).Error; err != nil {

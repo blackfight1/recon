@@ -63,6 +63,9 @@ chmod +x *.sh
 # 启动项目
 ./start.sh
 
+# 快速修复后端
+./quick-fix.sh
+
 # 查看后端日志
 ./logs.sh
 
