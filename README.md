@@ -17,10 +17,12 @@
 
 项目使用本地安装的扫描工具（方案二架构）：
 
-- **Subfinder** - 子域名收集
-- **Samoscout** - 子域名收集（补充）
-- **Ksubdomain** - DNS 存活验证，过滤泛解析
-- **Httpx** - HTTP 存活验证，识别状态码、标题、技术栈
+| 工具 | 用途 | 命令示例 |
+|------|------|----------|
+| **Subfinder** | 子域名收集 | `subfinder -d domain.com -all -silent -o subs.txt` |
+| **Samoscout** | 子域名收集（补充） | `samoscout -d domain.com -silent -o subs.txt` |
+| **Ksubdomain** | DNS 存活验证 | `ksubdomain verify -f subs.txt --silent -o output.txt` |
+| **Httpx** | HTTP 存活验证 | `httpx -l subs.txt -sc -title -td -json -o httpx.json` |
 
 工具安装位置：`/root/go/bin/`
 
@@ -28,8 +30,10 @@
 
 ### 前置要求
 
-1. **安装 Docker 和 Docker Compose**
-2. **安装扫描工具到 VPS**（必须）
+1. **Docker 和 Docker Compose**
+2. **扫描工具**（必须安装）
+
+### 安装扫描工具
 
 ```bash
 # 安装 Go（如果未安装）
@@ -44,37 +48,31 @@ go install -v github.com/samogod/samoscout/cmd/samoscout@latest
 go install -v github.com/boy-hack/ksubdomain/cmd/ksubdomain@latest
 go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
 
+# 确保工具有执行权限
+chmod +x ~/go/bin/*
+
 # 验证安装
 subfinder -version
 httpx -version
 ```
 
-### 1. 克隆项目
+### 部署项目
 
 ```bash
+# 1. 克隆项目
 git clone <your-repo-url>
 cd recon
-```
 
-### 2. 检查工具
-
-```bash
-chmod +x check-tools.sh
-./check-tools.sh
-```
-
-### 3. 一键部署
-
-```bash
+# 2. 一键部署
 chmod +x deploy.sh
 ./deploy.sh
 ```
 
-### 4. 访问系统
+### 访问系统
 
-- 前端界面: `http://你的IP:8080`
-- 后端 API: `http://你的IP:8000`
-- 健康检查: `http://你的IP:8000/health`
+- **前端界面**: `http://你的IP:8080`
+- **后端 API**: `http://你的IP:8000`
+- **健康检查**: `http://你的IP:8000/health`
 
 ## 📖 使用说明
 
@@ -95,16 +93,10 @@ chmod +x deploy.sh
 ## 🛠️ 常用命令
 
 ```bash
-# 检查工具
-chmod +x check-tools.sh
-./check-tools.sh
-
-# 一键部署
-chmod +x deploy.sh
+# 一键部署（推荐）
 ./deploy.sh
 
 # 启动项目
-chmod +x start.sh
 ./start.sh
 
 # 查看日志
@@ -114,7 +106,6 @@ docker-compose logs -f backend
 docker-compose ps
 
 # 重新构建
-chmod +x rebuild.sh
 ./rebuild.sh
 
 # 重启服务
@@ -123,11 +114,10 @@ docker-compose restart
 # 停止服务
 docker-compose down
 
-# 卸载（保留镜像）
-chmod +x uninstall.sh
+# 卸载（保留镜像和数据）
 ./uninstall.sh
 
-# 完全卸载
+# 完全卸载（删除所有）
 ./uninstall.sh --full
 ```
 
@@ -144,15 +134,17 @@ recon/
 │   ├── router/          # 路由配置
 │   ├── scanner/         # 扫描引擎（核心）
 │   └── scheduler/       # 定时任务
-├── frontend/            # Vue 3 前端
+├── frontend/            # Vue 3 前端（暗色主题）
 │   └── src/
 │       ├── api/         # API 封装
 │       ├── router/      # 路由配置
 │       └── views/       # 页面组件
+├── check-tools.sh       # 检查工具
+├── deploy.sh            # 一键部署
 ├── docker-compose.yml   # Docker 编排
-├── start.sh            # 一键启动
-├── rebuild.sh          # 重新构建
-└── uninstall.sh        # 卸载脚本
+├── rebuild.sh           # 重新构建
+├── start.sh             # 启动项目
+└── uninstall.sh         # 卸载脚本
 ```
 
 ## 🔧 技术栈
@@ -174,82 +166,77 @@ recon/
 
 ## 📊 扫描流程
 
-1. **子域名收集** - Subfinder + Samoscout
-2. **DNS 验证** - Ksubdomain 过滤泛解析
-3. **HTTP 验证** - Httpx 获取状态码、标题、技术栈
-4. **数据对比** - 发现新增、恢复、失效的子域名
-5. **通知推送** - 企业微信 / 钉钉
+```
+1. Subfinder 收集子域名
+2. Samoscout 补充收集
+3. Ksubdomain DNS 验证（过滤泛解析）
+4. Httpx HTTP 验证（状态码、标题、技术栈）
+5. 数据对比分析（新增、恢复、失效）
+6. 通知推送（企业微信/钉钉）
+```
 
 ## 🐛 故障排查
+
+### 工具找不到错误
+
+```
+错误: fork/exec /usr/local/bin/subfinder: no such file or directory
+```
+
+**解决方案：**
+
+```bash
+# 1. 检查工具是否安装
+ls -lh /root/go/bin/
+
+# 2. 确保有执行权限
+chmod +x /root/go/bin/*
+
+# 3. 重新部署
+./deploy.sh
+
+# 4. 验证容器内工具
+docker-compose exec backend ls -lh /usr/local/bin/subfinder
+```
+
+### 前端没有暗色主题
+
+前端需要重新构建才能应用新的样式：
+
+```bash
+# 重新构建前端
+docker-compose build --no-cache frontend
+docker-compose up -d frontend
+
+# 或者完整重新部署
+./deploy.sh
+```
 
 ### 后端容器不断重启
 
 ```bash
-# 1. 查看后端日志
-docker-compose logs -f backend
-
-# 2. 运行诊断脚本
-chmod +x debug.sh
-./debug.sh
-
-# 3. 检查常见问题
-# - 数据库是否启动成功
-# - 配置文件是否存在
-# - 环境变量是否正确
-```
-
-### 服务无法启动
-
-```bash
-# 查看服务状态
-docker-compose ps
-
 # 查看日志
 docker-compose logs -f backend
-docker-compose logs -f frontend
+
+# 检查数据库连接
+docker-compose ps postgres
 
 # 重新构建
 ./rebuild.sh
-
-# 诊断问题
-./debug.sh
 ```
 
-### 常用命令
+### 扫描无结果
 
 ```bash
-# 查看后端日志
-./logs.sh
-# 或
-docker-compose logs -f backend
+# 1. 检查工具是否正常
+docker-compose exec backend subfinder -version
+docker-compose exec backend httpx -version
 
-# 重启单个服务
-docker-compose restart backend
+# 2. 手动测试工具
+docker-compose exec backend subfinder -d example.com -silent
 
-# 进入容器调试
-docker-compose exec backend sh
-docker-compose exec postgres psql -U recon -d recon
-```
-
-### 扫描工具无法运行
-
-```bash
-# 检查 Docker 网络
-docker network ls
-
-# 手动测试工具
-docker run --rm projectdiscovery/subfinder:latest -version
-docker run --rm projectdiscovery/httpx:latest -version
-```
-
-### 数据库连接失败
-
-```bash
-# 检查数据库容器
-docker-compose ps postgres
-
-# 进入数据库
-docker-compose exec postgres psql -U recon -d recon
+# 3. 查看扫描日志
+docker-compose logs -f backend | grep -A 10 "扫描"
 ```
 
 ## 📝 API 文档
@@ -273,16 +260,33 @@ docker-compose exec postgres psql -U recon -d recon
 - [ ] 添加指纹识别（Wappalyzer）
 - [ ] 添加截图功能（Gowitness）
 - [ ] 添加漏洞扫描（Nuclei）
+- [ ] 支持多域名批量扫描
 - [ ] 优化通知模板
 - [ ] 添加 Web 界面配置
 
 ## ⚠️ 注意事项
 
-1. 首次启动会下载 Docker 镜像，需要一些时间
-2. 扫描工具镜像会被保留，避免重复下载
-3. 数据存储在 Docker 卷中，卸载时不会丢失（除非使用 --full）
-4. 建议在 VPS 上运行，本地开发需要修改配置
-5. 快速扫描不会添加到监控列表，适合临时测试
+1. **工具路径固定** - 必须安装在 `/root/go/bin/`
+2. **权限要求** - 工具必须有执行权限（`chmod +x`）
+3. **环境依赖** - 换服务器需要重新安装工具
+4. **挂载配置** - docker-compose.yml 中的挂载路径必须正确
+5. **首次启动** - 会下载 Docker 镜像，需要一些时间
+6. **数据持久化** - 数据存储在 Docker 卷中，卸载时不会丢失（除非使用 --full）
+
+## 📄 更新日志
+
+### v2.0.0 - 2026-02-25
+
+- ✅ 架构重构：从容器内 Docker 调用改为使用 VPS 本地工具
+- ✅ 新增 Samoscout 和 Ksubdomain 工具
+- ✅ 移除 Assetfinder 和 cert.sh
+- ✅ 全新暗色主题 UI
+- ✅ 优化扫描流程和日志显示
+- ✅ 精简脚本，保留 5 个核心脚本
+
+### v1.0.0 - 2026-02-24
+
+- 初始版本发布
 
 ## 📄 许可证
 
