@@ -1,57 +1,54 @@
 <template>
-  <el-config-provider :locale="zhCn">
-    <el-container class="app-container">
-      <el-header class="app-header">
-        <div class="header-content">
-          <div class="logo">
-            <el-icon class="logo-icon"><Radar /></el-icon>
-            <h1>自动化侦查平台</h1>
-          </div>
-          <el-menu
-            mode="horizontal"
-            :default-active="activeMenu"
-            router
-            class="header-menu"
-          >
-            <el-menu-item index="/">
-              <el-icon><Monitor /></el-icon>
-              <span>仪表盘</span>
-            </el-menu-item>
-            <el-menu-item index="/quick-scan">
-              <el-icon><Search /></el-icon>
-              <span>快速扫描</span>
-            </el-menu-item>
-            <el-menu-item index="/targets">
-              <el-icon><Aim /></el-icon>
-              <span>目标管理</span>
-            </el-menu-item>
-            <el-menu-item index="/subdomains">
-              <el-icon><Connection /></el-icon>
-              <span>子域名</span>
-            </el-menu-item>
-            <el-menu-item index="/changes">
-              <el-icon><Bell /></el-icon>
-              <span>变更中心</span>
-            </el-menu-item>
-            <el-menu-item index="/tasks">
-              <el-icon><List /></el-icon>
-              <span>任务列表</span>
-            </el-menu-item>
-          </el-menu>
+  <el-container class="app-container">
+    <el-header class="app-header">
+      <div class="header-content">
+        <div class="logo">
+          <el-icon class="logo-icon"><Radar /></el-icon>
+          <h1>自动化侦查平台</h1>
         </div>
-      </el-header>
-      <el-main class="app-main">
-        <router-view />
-      </el-main>
-    </el-container>
-  </el-config-provider>
+        <el-menu
+          mode="horizontal"
+          :default-active="activeMenu"
+          router
+          class="header-menu"
+        >
+          <el-menu-item index="/">
+            <el-icon><Monitor /></el-icon>
+            <span>仪表盘</span>
+          </el-menu-item>
+          <el-menu-item index="/quick-scan">
+            <el-icon><Search /></el-icon>
+            <span>快速扫描</span>
+          </el-menu-item>
+          <el-menu-item index="/targets">
+            <el-icon><Aim /></el-icon>
+            <span>目标管理</span>
+          </el-menu-item>
+          <el-menu-item index="/subdomains">
+            <el-icon><Connection /></el-icon>
+            <span>子域名</span>
+          </el-menu-item>
+          <el-menu-item index="/changes">
+            <el-icon><Bell /></el-icon>
+            <span>变更中心</span>
+          </el-menu-item>
+          <el-menu-item index="/tasks">
+            <el-icon><List /></el-icon>
+            <span>任务列表</span>
+          </el-menu-item>
+        </el-menu>
+      </div>
+    </el-header>
+    <el-main class="app-main">
+      <router-view />
+    </el-main>
+  </el-container>
 </template>
 
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { Monitor, Search, Aim, Connection, Bell, List, Radar } from '@element-plus/icons-vue'
-import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 
 const route = useRoute()
 const activeMenu = computed(() => route.path)
@@ -125,6 +122,7 @@ body {
   background: linear-gradient(135deg, var(--accent-primary), #8b5cf6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .header-menu {

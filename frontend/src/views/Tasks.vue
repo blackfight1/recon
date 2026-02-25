@@ -115,6 +115,6 @@ onMounted(() => {
 <style scoped>
 .tasks h2 {
   margin-bottom: 20px;
-  color: #303133;
+  color: var(--text-primary);
 }
 </style>

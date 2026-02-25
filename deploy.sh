@@ -15,9 +15,8 @@ check_tool() {
     local tool_path="$TOOLS_PATH/$tool_name"
     
     if [ -f "$tool_path" ]; then
-        # 确保有执行权限
         chmod +x "$tool_path" 2>/dev/null || true
-        echo "✅ $tool_name: $tool_path"
+        echo "✅ $tool_name"
         return 0
     else
         echo "❌ $tool_name: 未找到"
@@ -39,6 +38,7 @@ if [ "$ALL_OK" = false ]; then
     echo "go install -v github.com/samogod/samoscout/cmd/samoscout@latest"
     echo "go install -v github.com/boy-hack/ksubdomain/cmd/ksubdomain@latest"
     echo "go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest"
+    echo "chmod +x ~/go/bin/*"
     echo ""
     exit 1
 fi
@@ -49,7 +49,10 @@ docker-compose down
 
 echo ""
 echo "3️⃣ 重新构建镜像..."
-docker-compose build --no-cache
+echo "   构建后端..."
+docker-compose build --no-cache backend
+echo "   构建前端..."
+docker-compose build --no-cache frontend
 
 echo ""
 echo "4️⃣ 启动所有服务..."
@@ -65,24 +68,24 @@ docker-compose ps
 
 echo ""
 echo "7️⃣ 验证工具挂载..."
-echo "检查容器内工具..."
-docker-compose exec -T backend sh -c "ls -lh /usr/local/bin/subfinder /usr/local/bin/samoscout /usr/local/bin/ksubdomain /usr/local/bin/httpx" || echo "⚠️  工具挂载可能有问题"
+docker-compose exec -T backend sh -c "ls -lh /usr/local/bin/subfinder /usr/local/bin/httpx" 2>/dev/null || echo "⚠️  工具挂载检查跳过"
 
 echo ""
-echo "8️⃣ 后端日志（最后30行）："
-docker-compose logs --tail=30 backend
+echo "8️⃣ 后端日志（最后20行）："
+docker-compose logs --tail=20 backend
 
 echo ""
 echo "✅ 部署完成！"
 echo ""
 echo "📍 访问地址："
-echo "   前端: http://$(hostname -I | awk '{print $1}'):8080"
-echo "   后端: http://$(hostname -I | awk '{print $1}'):8000"
+IP=$(hostname -I | awk '{print $1}' 2>/dev/null || echo "你的IP")
+echo "   前端: http://$IP:8080"
+echo "   后端: http://$IP:8000"
 echo ""
 echo "📝 查看日志："
 echo "   docker-compose logs -f backend"
 echo ""
 echo "🧪 测试快速扫描："
-echo "   1. 访问前端页面"
+echo "   1. 访问前端页面（刷新浏览器 Ctrl+F5）"
 echo "   2. 点击'快速扫描'"
 echo "   3. 输入域名测试"

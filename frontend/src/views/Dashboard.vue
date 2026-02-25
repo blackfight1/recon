@@ -109,7 +109,7 @@ onMounted(() => {
 <style scoped>
 .dashboard h2 {
   margin-bottom: 20px;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .stats-row {
@@ -143,7 +143,7 @@ onMounted(() => {
 .stat-value {
   font-size: 32px;
   font-weight: bold;
-  color: #303133;
+  color: var(--accent-primary);
 }
 
 .stat-label {

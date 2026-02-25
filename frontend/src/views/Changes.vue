@@ -107,7 +107,7 @@ onMounted(() => {
 <style scoped>
 .changes h2 {
   margin-bottom: 30px;
-  color: #303133;
+  color: var(--text-primary);
 }
 
 .change-item {
@@ -122,12 +122,12 @@ onMounted(() => {
 
 .change-type {
   font-weight: bold;
-  color: #303133;
+  color: var(--text-primary);
   margin-bottom: 5px;
 }
 
 .change-detail {
-  color: #606266;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 </style>
