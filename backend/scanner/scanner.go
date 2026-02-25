@@ -2,7 +2,6 @@ package scanner
 
 import (
 	"bufio"
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -19,11 +18,24 @@ import (
 
 // HttpxResult Httpx 输出结构
 type HttpxResult struct {
-	URL        string `json:"url"`
-	StatusCode int    `json:"status_code"`
-	Title      string `json:"title"`
-	Server     string `json:"webserver"`
-	IP         string `json:"host"`
+	Timestamp     string   `json:"timestamp"`
+	URL           string   `json:"url"`
+	Input         string   `json:"input"`
+	Title         string   `json:"title"`
+	StatusCode    int      `json:"status_code"`
+	ContentLength int      `json:"content_length"`
+	Scheme        string   `json:"scheme"`
+	Webserver     string   `json:"webserver"`
+	ContentType   string   `json:"content_type"`
+	Method        string   `json:"method"`
+	Host          string   `json:"host"`
+	Path          string   `json:"path"`
+	Time          string   `json:"time"`
+	A             []string `json:"a"`
+	Tech          []string `json:"tech"`
+	CDN           bool     `json:"cdn"`
+	CDNName       string   `json:"cdn_name"`
+	Failed        bool     `json:"failed"`
 }
 
 // ScanTarget 扫描指定目标
@@ -120,74 +132,37 @@ func executeScan(taskID uint, targetID uint, domain string, logger *Logger) erro
 // collectSubdomains 收集子域名
 func collectSubdomains(domain string, logger *Logger) ([]string, error) {
 	dataDir := config.AppConfig.Scanner.DataDir
-	outputFile := filepath.Join(dataDir, fmt.Sprintf("%s_subs.txt", domain))
-
 	subdomainSet := make(map[string]bool)
 
 	// 1. Subfinder
 	logger.Info("Subfinder", "运行 Subfinder...")
 	log.Printf("Running subfinder for %s", domain)
-	cmd := exec.Command("docker", "run", "--rm",
-		"-v", fmt.Sprintf("%s:/output", dataDir),
-		"projectdiscovery/subfinder:latest",
-		"-d", domain,
-		"-all",
-		"-silent",
-	)
-	output, err := cmd.Output()
-	if err != nil {
+
+	subfinderOutput := filepath.Join(dataDir, fmt.Sprintf("%s_subfinder.txt", domain))
+	cmd := exec.Command("subfinder", "-d", domain, "-all", "-silent", "-o", subfinderOutput)
+
+	if err := cmd.Run(); err != nil {
 		logger.Warning("Subfinder", fmt.Sprintf("Subfinder 执行出错: %v", err))
 		log.Printf("Subfinder error: %v", err)
 	} else {
-		scanner := bufio.NewScanner(strings.NewReader(string(output)))
-		count := 0
-		for scanner.Scan() {
-			sub := strings.TrimSpace(scanner.Text())
-			if sub != "" {
-				subdomainSet[sub] = true
-				count++
-			}
-		}
+		// 读取结果
+		count := readSubdomainsFromFile(subfinderOutput, subdomainSet)
 		logger.Success("Subfinder", fmt.Sprintf("发现 %d 个子域名", count))
 	}
 
-	// 2. Assetfinder
-	logger.Info("Assetfinder", "运行 Assetfinder...")
-	log.Printf("Running assetfinder for %s", domain)
-	cmd = exec.Command("docker", "run", "--rm",
-		"tomnomnom/assetfinder:latest",
-		"--subs-only",
-		domain,
-	)
-	output, err = cmd.Output()
-	if err != nil {
-		logger.Warning("Assetfinder", fmt.Sprintf("Assetfinder 执行出错: %v", err))
-		log.Printf("Assetfinder error: %v", err)
-	} else {
-		scanner := bufio.NewScanner(strings.NewReader(string(output)))
-		count := 0
-		for scanner.Scan() {
-			sub := strings.TrimSpace(scanner.Text())
-			if sub != "" {
-				subdomainSet[sub] = true
-				count++
-			}
-		}
-		logger.Success("Assetfinder", fmt.Sprintf("发现 %d 个子域名", count))
-	}
+	// 2. Samoscout
+	logger.Info("Samoscout", "运行 Samoscout...")
+	log.Printf("Running samoscout for %s", domain)
 
-	// 3. cert.sh (被动查询)
-	logger.Info("cert.sh", "查询 cert.sh...")
-	log.Printf("Querying cert.sh for %s", domain)
-	certSubs, err := queryCertSh(domain)
-	if err != nil {
-		logger.Warning("cert.sh", fmt.Sprintf("cert.sh 查询出错: %v", err))
-		log.Printf("cert.sh error: %v", err)
+	samoscoutOutput := filepath.Join(dataDir, fmt.Sprintf("%s_samoscout.txt", domain))
+	cmd = exec.Command("samoscout", "-d", domain, "-silent", "-o", samoscoutOutput)
+
+	if err := cmd.Run(); err != nil {
+		logger.Warning("Samoscout", fmt.Sprintf("Samoscout 执行出错: %v", err))
+		log.Printf("Samoscout error: %v", err)
 	} else {
-		for _, sub := range certSubs {
-			subdomainSet[sub] = true
-		}
-		logger.Success("cert.sh", fmt.Sprintf("发现 %d 个子域名", len(certSubs)))
+		count := readSubdomainsFromFile(samoscoutOutput, subdomainSet)
+		logger.Success("Samoscout", fmt.Sprintf("发现 %d 个子域名", count))
 	}
 
 	// 转换为切片
@@ -196,8 +171,9 @@ func collectSubdomains(domain string, logger *Logger) ([]string, error) {
 		subdomains = append(subdomains, sub)
 	}
 
-	// 保存到文件
-	file, err := os.Create(outputFile)
+	// 保存所有子域名到文件
+	allSubsFile := filepath.Join(dataDir, fmt.Sprintf("%s_all_subs.txt", domain))
+	file, err := os.Create(allSubsFile)
 	if err != nil {
 		return subdomains, err
 	}
@@ -207,49 +183,56 @@ func collectSubdomains(domain string, logger *Logger) ([]string, error) {
 		file.WriteString(sub + "\n")
 	}
 
-	return subdomains, nil
-}
+	logger.Info("汇总", fmt.Sprintf("共收集到 %d 个唯一子域名", len(subdomains)))
 
-// queryCertSh 查询 cert.sh
-func queryCertSh(domain string) ([]string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+	// 4. Ksubdomain 验证 DNS 存活
+	if len(subdomains) > 0 {
+		logger.Info("Ksubdomain", fmt.Sprintf("验证 %d 个子域名的 DNS 存活...", len(subdomains)))
+		verifiedFile := filepath.Join(dataDir, fmt.Sprintf("%s_verified.txt", domain))
 
-	cmd := exec.CommandContext(ctx, "curl", "-s",
-		fmt.Sprintf("https://crt.sh/?q=%%.%s&output=json", domain))
+		cmd = exec.Command("ksubdomain", "verify", "-f", allSubsFile, "--silent", "-o", verifiedFile)
+		if err := cmd.Run(); err != nil {
+			logger.Warning("Ksubdomain", fmt.Sprintf("Ksubdomain 执行出错: %v", err))
+		} else {
+			// 读取验证后的子域名
+			verifiedSet := make(map[string]bool)
+			count := readSubdomainsFromFile(verifiedFile, verifiedSet)
 
-	output, err := cmd.Output()
-	if err != nil {
-		return nil, err
-	}
-
-	var results []struct {
-		NameValue string `json:"name_value"`
-	}
-
-	if err := json.Unmarshal(output, &results); err != nil {
-		return nil, err
-	}
-
-	subdomainSet := make(map[string]bool)
-	for _, result := range results {
-		subs := strings.Split(result.NameValue, "\n")
-		for _, sub := range subs {
-			sub = strings.TrimSpace(sub)
-			if sub != "" && !strings.HasPrefix(sub, "*") {
-				subdomainSet[sub] = true
+			// 更新子域名列表为验证后的
+			if count > 0 {
+				subdomains = make([]string, 0, len(verifiedSet))
+				for sub := range verifiedSet {
+					subdomains = append(subdomains, sub)
+				}
+				logger.Success("Ksubdomain", fmt.Sprintf("验证通过 %d 个存活子域名", count))
 			}
 		}
 	}
 
-	subdomains := make([]string, 0, len(subdomainSet))
-	for sub := range subdomainSet {
-		subdomains = append(subdomains, sub)
-	}
-
 	return subdomains, nil
 }
 
+// readSubdomainsFromFile 从文件读取子域名到 set
+func readSubdomainsFromFile(filename string, subdomainSet map[string]bool) int {
+	file, err := os.Open(filename)
+	if err != nil {
+		return 0
+	}
+	defer file.Close()
+
+	count := 0
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		sub := strings.TrimSpace(scanner.Text())
+		if sub != "" && !subdomainSet[sub] {
+			subdomainSet[sub] = true
+			count++
+		}
+	}
+	return count
+}
+
+// queryCertSh 查询 cert.sh
 // verifyAlive 验证存活
 func verifyAlive(subdomains []string, logger *Logger) ([]HttpxResult, error) {
 	if len(subdomains) == 0 {
@@ -259,7 +242,7 @@ func verifyAlive(subdomains []string, logger *Logger) ([]HttpxResult, error) {
 
 	dataDir := config.AppConfig.Scanner.DataDir
 	inputFile := filepath.Join(dataDir, "temp_subs.txt")
-	outputFile := filepath.Join(dataDir, "temp_alive.json")
+	outputFile := filepath.Join(dataDir, "temp_httpx.json")
 
 	// 写入临时文件
 	file, err := os.Create(inputFile)
@@ -274,25 +257,30 @@ func verifyAlive(subdomains []string, logger *Logger) ([]HttpxResult, error) {
 	// 运行 httpx
 	logger.Info("Httpx", fmt.Sprintf("开始验证 %d 个子域名...", len(subdomains)))
 	log.Printf("Running httpx to verify %d subdomains", len(subdomains))
-	cmd := exec.Command("docker", "run", "--rm",
-		"-v", fmt.Sprintf("%s:/output", dataDir),
-		"projectdiscovery/httpx:latest",
-		"-l", "/output/temp_subs.txt",
-		"-json",
-		"-silent",
-		"-timeout", "10",
-		"-retries", "2",
-		"-threads", "50",
+
+	cmd := exec.Command("httpx",
+		"-l", inputFile,
+		"-sc",     // 状态码
+		"-title",  // 标题
+		"-td",     // 技术栈
+		"-json",   // JSON 输出
+		"-silent", // 静默模式
+		"-o", outputFile,
 	)
 
-	output, err := cmd.Output()
-	if err != nil {
+	if err := cmd.Run(); err != nil {
 		return nil, fmt.Errorf("httpx error: %w", err)
 	}
 
 	// 解析结果
 	var results []HttpxResult
-	scanner := bufio.NewScanner(strings.NewReader(string(output)))
+	resultFile, err := os.Open(outputFile)
+	if err != nil {
+		return nil, err
+	}
+	defer resultFile.Close()
+
+	scanner := bufio.NewScanner(resultFile)
 	for scanner.Scan() {
 		line := scanner.Text()
 		if line == "" {
@@ -306,9 +294,6 @@ func verifyAlive(subdomains []string, logger *Logger) ([]HttpxResult, error) {
 		}
 		results = append(results, result)
 	}
-
-	// 保存结果
-	os.WriteFile(outputFile, output, 0644)
 
 	// 清理临时文件
 	os.Remove(inputFile)
@@ -344,6 +329,12 @@ func compareAndUpdate(targetID uint, aliveSubdomains []HttpxResult, logger *Logg
 	for _, alive := range aliveSubdomains {
 		subdomain := extractDomain(alive.URL)
 
+		// 提取技术栈
+		tech := ""
+		if len(alive.Tech) > 0 {
+			tech = strings.Join(alive.Tech, ", ")
+		}
+
 		if existing, found := existingMap[subdomain]; found {
 			// 已存在，更新状态
 			if existing.Status != "alive" {
@@ -362,8 +353,8 @@ func compareAndUpdate(targetID uint, aliveSubdomains []HttpxResult, logger *Logg
 			existing.Status = "alive"
 			existing.StatusCode = alive.StatusCode
 			existing.Title = alive.Title
-			existing.Server = alive.Server
-			existing.IP = alive.IP
+			existing.Server = alive.Webserver
+			existing.IP = alive.Host
 			existing.LastSeen = now
 			database.DB.Save(existing)
 
@@ -376,8 +367,8 @@ func compareAndUpdate(targetID uint, aliveSubdomains []HttpxResult, logger *Logg
 				Status:     "new",
 				StatusCode: alive.StatusCode,
 				Title:      alive.Title,
-				Server:     alive.Server,
-				IP:         alive.IP,
+				Server:     alive.Webserver,
+				IP:         alive.Host,
 				FirstSeen:  now,
 				LastSeen:   now,
 			}
@@ -386,7 +377,7 @@ func compareAndUpdate(targetID uint, aliveSubdomains []HttpxResult, logger *Logg
 			change := models.ChangeLog{
 				TargetID:   targetID,
 				ChangeType: "subdomain_new",
-				Content:    fmt.Sprintf("%s (状态码: %d, 标题: %s)", subdomain, alive.StatusCode, alive.Title),
+				Content:    fmt.Sprintf("%s (状态码: %d, 标题: %s, 技术: %s)", subdomain, alive.StatusCode, alive.Title, tech),
 			}
 			changes = append(changes, change)
 			database.DB.Create(&change)
